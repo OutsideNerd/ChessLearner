@@ -9,6 +9,8 @@ from collections import Counter, OrderedDict, namedtuple
 
 ARG_OUTPUTFILE = 2
 
+GAMES_PLAYED = 5
+
 # The table size is the maximum number of elements in the transposition table.
 TABLE_SIZE = 1e6
 
@@ -375,7 +377,8 @@ def main():
         playAgainstComputer()
         
     elif(sys.argv[1] == 'r'):
-        randomMoves()
+        for count in range(1, GAMES_PLAYED+1):
+            randomMoves("game" + str(count) + ".txt")
         
 def playAgainstComputer():
     pos = Position(initial, 0, (True,True), (True,True), 0, 0, False)
@@ -446,13 +449,12 @@ def playAgainstComputer():
         if(len(sys.argv) > ARG_OUTPUTFILE):
             pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
 
-def randomMoves():
+def randomMoves(outputFilename):
     pos = Position(initial, 0, (True,True), (True,True), 0, 0, False)
     
     # Modified code to print board to file if optional argument added
     # Modified by Evan Dyke on 12-7-14
-    if(len(sys.argv) > ARG_OUTPUTFILE):
-        pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'w')
+    pos.printBoard(outputFilename, 'w')
     
     while True:
         # We add some spaces to the board before we print it.
@@ -460,51 +462,41 @@ def randomMoves():
         print(' '.join(pos.board))
 
         # Randomly generate move for PLayer 1 if game still in session
-        if(pos.score < abs(MATE_VALUE)):
+        if(abs(pos.score) < MATE_VALUE):
             
             # Plater 1 move
             move = random.choice(list(pos.genMoves()))
             pos = pos.move(move)
 
             # Code added by ED to print board to a text file
-            if(len(sys.argv) > ARG_OUTPUTFILE):
-                pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
+            pos.printBoard(outputFilename, 'a')
 
             # After our move we rotate the board and print it again.
             # This allows us to see the effect of our move.
             #print(' '.join(pos.rotate().board))
 
         # Randomly generate move for PLayer 2 if game still in session
-        if(pos.score < abs(MATE_VALUE)):
+        if(abs(pos.score) < MATE_VALUE):
             move = random.choice(list(pos.genMoves()))
             pos = pos.move(move)
             
             # Code added by ED to print board to a text file
-            if(len(sys.argv) > ARG_OUTPUTFILE):
-                pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
+            pos.printBoard(outputFilename, 'a')
             
         if pos.score >= MATE_VALUE:
             print("You won")
             
-            # Modified code to print board to file if optional argument added
-            # Modified by Evan Dyke on 12-13-14
-            if(len(sys.argv) > ARG_OUTPUTFILE):
-                #pos = pos.move(move)
-                #pos.printBoard(sys.argv[ARG_OUTPUTFILE],'a')
-                f = open(sys.argv[1],'a')
-                f.write("1")
+            # Modified code to print board to file
+            f = open(outputFilename,'a')
+            f.write("1")
                 
             break
         if pos.score <= -MATE_VALUE:
             print("You lost")
             
-            # Modified code to print board to file if optional argument added
-            # Modified by Evan Dyke on 12-13-14
-            if(len(sys.argv) > ARG_OUTPUTFILE):
-                #pos = pos.move(move)
-                #pos.printBoard(sys.argv[ARG_OUTPUTFILE],'a')
-                f = open(sys.argv[ARG_OUTPUTFILE],'a')
-                f.write("2")
+            # Modified code to print board to fileif(len(sys.argv) > ARG_OUTPUTFILE):
+            f = open(outputFilename,'a')
+            f.write("2")
                 
             break
                 

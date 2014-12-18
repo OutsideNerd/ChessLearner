@@ -84,8 +84,17 @@ def main():
             if(player == 2):
                 b = -b
             
+            
+            
+            # Check to see if a piece was captured
+            if(((player == 1) and boardStates[index - 1][end].islower()) or 
+               ((player == 2) and boardStates[index - 1][end].isupper())):
+                status = 1
+            else:
+                status = 0
+            
             # Store as a tuple (x-distpance, y_distance, length)
-            move = (a / move_len, b / move_len, move_len, 0)
+            move = (a / move_len, b / move_len, move_len, status)
             
             piece = boardStates[index][end].capitalize()
             
@@ -94,6 +103,8 @@ def main():
                addToMoveList(moves[piece], move)  
             else:
                 moves[piece] = [move]         
+
+    print(moves)
 
 # This  is a function that adds a move in the format (x-pos, y-pos, max # spaces , condition)
 # to the list of moves for each piece. It does this by takiing the move and evaluating it against
@@ -109,12 +120,29 @@ def addToMoveList(move_list, move):
          # for each move that we know, check to see if the move we are examining
          # causes us to have to revise an earlier rule that we have stored
          
+        
          # Check to see if the pieces move in the same direction
-         if(known_move[0] == move[1] and known_move[0] == move[1]):
-             if(move[2] > known_move[2]):
-                 
-                 
-     
+        if(known_move[0] == move[0] and known_move[1] == move[1]):
+                
+            # Skip if move already exists
+            if(known_move[2] >= move[2] and known_move[3] == move[3]):    
+                return
+                
+            # Update the known move if for the same status, the piece moves farther
+            if(known_move[2] < move[2] and known_move[3] == move[3]):
+                known_move = (known_move[0], known_move[1], known_move[2], move[3])
+                return
+             
+            # If a previously known move was just for capturing a piece and that is contradicted by moving
+            # to an empty square, update the known move
+            elif(known_move[2] >= move[2] and known_move[3] == 1 and move[3] == 0):
+                known_move = (known_move[0], known_move[1], known_move[2], 0)
+                return
+    
+     # If the move was not found, add it to the end of the list
+     move_list.append(move)       
+        
+        
 if __name__ == '__main__':
     if(len(sys.argv) > 1):
         main()
