@@ -3,8 +3,11 @@
 
 from __future__ import print_function
 import sys
+import random
 from itertools import count
 from collections import Counter, OrderedDict, namedtuple
+
+ARG_OUTPUTFILE = 2
 
 # The table size is the maximum number of elements in the transposition table.
 TABLE_SIZE = 1e6
@@ -130,7 +133,7 @@ pst = {
 # Chess logic
 ###############################################################################
 
-class Position(namedtuple('Position', 'board score wc bc ep kp')):
+class Position(namedtuple('Position', 'board score wc bc ep kp rt')):
     """ A state of a chess game
     board -- a 120 char representation of the board
     score -- the board evaluation
@@ -138,8 +141,9 @@ class Position(namedtuple('Position', 'board score wc bc ep kp')):
     bc -- the opponent castling rights
     ep - the en passant square
     kp - the king passant square
+    rt - is the board rotated (added by ED)
     """
-
+    
     def genMoves(self):
         # For each of our pieces, iterate through each possible 'ray' of moves,
         # as defined in the 'directions' map. The rays are broken e.g. by
@@ -168,9 +172,10 @@ class Position(namedtuple('Position', 'board score wc bc ep kp')):
                     if q.islower(): break
 
     def rotate(self):
+            
         return Position(
             self.board[::-1].swapcase(), -self.score,
-            self.bc, self.wc, 119-self.ep, 119-self.kp)
+            self.bc, self.wc, 119-self.ep, 119-self.kp, not(self.rt))
 
     def move(self, move):
         i, j = move
@@ -205,7 +210,7 @@ class Position(namedtuple('Position', 'board score wc bc ep kp')):
                 board = put(board, j+S, '.')
             
         # We rotate the returned position, so it's ready for the next player
-        return Position(board, score, wc, bc, ep, kp).rotate()
+        return Position(board, score, wc, bc, ep, kp, self.rt).rotate()
 
     def value(self, move):
         i, j = move
@@ -235,7 +240,12 @@ class Position(namedtuple('Position', 'board score wc bc ep kp')):
     #
     def printBoard(self, filename, mode):
         f = open(filename, mode)
-        f.write((self.board[A8:(H1+1)].replace(" ","")).replace("\n","") + "\n")
+
+        if(self.rt):
+            f.write((self.rotate().board[A8:(H1+1)].replace(" ","")).replace("\n","") + "\n")
+        else:
+            f.write((self.board[A8:(H1+1)].replace(" ","")).replace("\n","") + "\n")
+        
 
 Entry = namedtuple('Entry', 'depth score gamma move')
 tp = OrderedDict()
@@ -359,12 +369,21 @@ def render(i):
 
 
 def main():
-    pos = Position(initial, 0, (True,True), (True,True), 0, 0)
+    # Check to see the mode from command-line input. if 0, play regularly. 1 is random moves
+    
+    if(sys.argv[1] == 'c'):
+        playAgainstComputer()
+        
+    elif(sys.argv[1] == 'r'):
+        randomMoves()
+        
+def playAgainstComputer():
+    pos = Position(initial, 0, (True,True), (True,True), 0, 0, False)
     
     # Modified code to print board to file if optional argument added
     # Modified by Evan Dyke on 12-7-14
-    if(len(sys.argv) > 1):
-        pos.printBoard(sys.argv[1], 'w')
+    if(len(sys.argv) > ARG_OUTPUTFILE):
+        pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'w')
     
     while True:
         # We add some spaces to the board before we print it.
@@ -383,8 +402,8 @@ def main():
         pos = pos.move(move)
 
         # Code added by ED to print board to a text file
-        if(len(sys.argv) > 1):
-            pos.rotate().printBoard(sys.argv[1], 'a')
+        if(len(sys.argv) > ARG_OUTPUTFILE):
+            pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
@@ -397,9 +416,9 @@ def main():
             
             # Modified code to print board to file if optional argument added
             # Modified by Evan Dyke on 12-13-14
-            if(len(sys.argv) > 1):
+            if(len(sys.argv) > ARG_OUTPUTFILE):
                 pos = pos.move(move)
-                pos.rotate().printBoard(sys.argv[1],'a')
+                pos.printBoard(sys.argv[ARG_OUTPUTFILE],'a')
                 f = open(sys.argv[1],'a')
                 f.write("1")
                 
@@ -409,10 +428,10 @@ def main():
             
             # Modified code to print board to file if optional argument added
             # Modified by Evan Dyke on 12-13-14
-            if(len(sys.argv) > 1):
+            if(len(sys.argv) > ARG_OUTPUTFILE):
                 pos = pos.move(move)
-                pos.rotate().printBoard(sys.argv[1],'a')
-                f = open(sys.argv[1],'a')
+                pos.printBoard(sys.argv[ARG_OUTPUTFILE],'a')
+                f = open(sys.argv[ARG_OUTPUTFILE],'a')
                 f.write("2")
                 
             break
@@ -424,8 +443,70 @@ def main():
 
         # Modified code to print board to file if optional argument added
         # Modified by Evan Dyke on 12-7-14
-        if(len(sys.argv) > 1):
-            pos.printBoard(sys.argv[1], 'a')
+        if(len(sys.argv) > ARG_OUTPUTFILE):
+            pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
 
+def randomMoves():
+    pos = Position(initial, 0, (True,True), (True,True), 0, 0, False)
+    
+    # Modified code to print board to file if optional argument added
+    # Modified by Evan Dyke on 12-7-14
+    if(len(sys.argv) > ARG_OUTPUTFILE):
+        pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'w')
+    
+    while True:
+        # We add some spaces to the board before we print it.
+        # That makes it more readable and pleasing.
+        print(' '.join(pos.board))
+
+        # Randomly generate move for PLayer 1 if game still in session
+        if(pos.score < abs(MATE_VALUE)):
+            
+            # Plater 1 move
+            move = random.choice(list(pos.genMoves()))
+            pos = pos.move(move)
+
+            # Code added by ED to print board to a text file
+            if(len(sys.argv) > ARG_OUTPUTFILE):
+                pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
+
+            # After our move we rotate the board and print it again.
+            # This allows us to see the effect of our move.
+            #print(' '.join(pos.rotate().board))
+
+        # Randomly generate move for PLayer 2 if game still in session
+        if(pos.score < abs(MATE_VALUE)):
+            move = random.choice(list(pos.genMoves()))
+            pos = pos.move(move)
+            
+            # Code added by ED to print board to a text file
+            if(len(sys.argv) > ARG_OUTPUTFILE):
+                pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
+            
+        if pos.score >= MATE_VALUE:
+            print("You won")
+            
+            # Modified code to print board to file if optional argument added
+            # Modified by Evan Dyke on 12-13-14
+            if(len(sys.argv) > ARG_OUTPUTFILE):
+                #pos = pos.move(move)
+                #pos.printBoard(sys.argv[ARG_OUTPUTFILE],'a')
+                f = open(sys.argv[1],'a')
+                f.write("1")
+                
+            break
+        if pos.score <= -MATE_VALUE:
+            print("You lost")
+            
+            # Modified code to print board to file if optional argument added
+            # Modified by Evan Dyke on 12-13-14
+            if(len(sys.argv) > ARG_OUTPUTFILE):
+                #pos = pos.move(move)
+                #pos.printBoard(sys.argv[ARG_OUTPUTFILE],'a')
+                f = open(sys.argv[ARG_OUTPUTFILE],'a')
+                f.write("2")
+                
+            break
+                
 if __name__ == '__main__':
     main()
