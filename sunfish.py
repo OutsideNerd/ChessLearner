@@ -9,7 +9,7 @@ from collections import Counter, OrderedDict, namedtuple
 
 ARG_OUTPUTFILE = 2
 
-GAMES_PLAYED = 5
+GAMES_PLAYED = 10
 
 # The table size is the maximum number of elements in the transposition table.
 TABLE_SIZE = 1e6
@@ -449,6 +449,14 @@ def playAgainstComputer():
         if(len(sys.argv) > ARG_OUTPUTFILE):
             pos.printBoard(sys.argv[ARG_OUTPUTFILE], 'a')
 
+# This function generates a of chess by randomly moving pieces on both sides 
+# until it is won by one of players. The state of the game is written to a text 
+# file.
+#
+# Modified Sunfish code by ED on 12-18-14
+# Paramters:
+#     outputFilename filename to write the game out to
+#
 def randomMoves(outputFilename):
     pos = Position(initial, 0, (True,True), (True,True), 0, 0, False)
     
@@ -482,7 +490,11 @@ def randomMoves(outputFilename):
             
             # Code added by ED to print board to a text file
             pos.printBoard(outputFilename, 'a')
-            
+         
+         
+        if(pos.rt):
+            pos = pos.rotate()
+               
         if pos.score >= MATE_VALUE:
             print("You won")
             

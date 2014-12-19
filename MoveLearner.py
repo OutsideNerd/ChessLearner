@@ -15,7 +15,7 @@ def main():
      
      
     f = open(sys.argv[1], 'r')
-    inputfiles = f.readlines()
+    inputfiles = f.read().splitlines()
     # Create an empty dictionary to store the moves
     # The dictionary has a key that corresponds to each piece, and has a list
     # of possible moves for that piece. Each possible move is represented as a
@@ -28,7 +28,11 @@ def main():
     # 2 - piece has not left starting position
     
     moves = {}
-       
+    end_states = []
+    game_winners = []
+    
+    numGamesPlayed = len(inputfiles)
+    
     #  Analyze each text file that was imported as a command-line argument
     for filename in inputfiles:
         
@@ -36,8 +40,14 @@ def main():
         f = open(filename, 'r')
         lines = f.readlines()
         
-        winner = lines[-1]
         boardStates = lines[:-1]
+        
+        # Gets the initial starting configuration of the board
+        init_state = boardStates[0]
+        
+        # Get information on ending positions and winner
+        game_winners.append(lines[-1])
+        end_states.append(lines[-2])
         
         # Iterate over each move in the game
         for index in range(1, len(boardStates)):
@@ -93,6 +103,11 @@ def main():
             if(((player == 1) and boardStates[index - 1][end].islower()) or 
                ((player == 2) and boardStates[index - 1][end].isupper())):
                 status = 1
+            
+            # Check to see if piece is in starting position
+            elif(boardStates[index - 1][begin] == init_state[begin]):
+                status = 2
+                
             else:
                 status = 0
             
@@ -106,8 +121,44 @@ def main():
                addToMoveList(moves[piece], move)  
             else:
                 moves[piece] = [move]         
-
+    
+    print("Number of games read in: " + str(numGamesPlayed))
     print(moves)
+
+    # Determine what configuration of pieces determine how the game is won
+    
+    winnerCount = {'P':[], 'R':[], 'N':[], 'B':[], 'Q':[], 'K':[]}
+    loserCount = {'P':[], 'R':[], 'N':[], 'B':[], 'Q':[], 'K':[]}
+    
+    # Count the number of pieces for each player
+    for endgame, playerWon in zip(end_states, game_winners):
+        
+        for piece in winnerCount:
+            winnerCount[piece].append(0)
+        
+        for piece in loserCount:
+            loserCount[piece].append(0)
+        
+        for pos in endgame:
+            # Check to see the winner of this game so we can add to the 
+            # appropriate dictionary
+            if(playerWon == "1"):
+                if (pos.isupper()):
+                    winnerCount[pos][-1]+=1
+                elif(pos.islower()):
+                    loserCount[pos.upper()][-1]+=1
+            
+            elif(playerWon == "2"):
+                if (pos.isupper()):
+                    loserCount[pos][-1]+=1
+                elif(pos.islower()):
+                    winnerCount[pos.upper()][-1]+=1
+                    
+            else:
+                sys.exit("Who the f*** won if not player 1 or player 2????")
+    
+    print(winnerCount)
+    print(loserCount)
 
 # This  is a function that adds a move in the format (x-pos, y-pos, max # spaces , condition)
 # to the list of moves for each piece. It does this by takiing the move and evaluating it against
@@ -127,7 +178,7 @@ def addToMoveList(move_list, move):
          # Check to see if the pieces move in the same direction
         if(known_move[0] == move[0] and known_move[1] == move[1]):
                 
-            # Skip if move already exists
+            # Exit if move already exists
             if(known_move[2] >= move[2] and known_move[3] == move[3]):    
                 return
                 
@@ -136,9 +187,12 @@ def addToMoveList(move_list, move):
                 known_move = (known_move[0], known_move[1], known_move[2], move[3])
                 return
              
-            # If a previously known move was just for capturing a piece and that is contradicted by moving
-            # to an empty square, update the known move
-            elif(known_move[2] >= move[2] and known_move[3] == 1 and move[3] == 0):
+            # If a previously known move was just for one of the following scenarios:
+            #     -capturing a piece
+            #     -piece has not moves form original position
+            # and that is contradicted by moving to an empty square or from a non-starting
+            # position, update the known move's condition
+            elif(known_move[2] >= move[2] and (known_move[3] != 0 and move[3] == 0)):
                 known_move = (known_move[0], known_move[1], known_move[2], 0)
                 return
     
