@@ -3,14 +3,16 @@ ChessLearner
 Chesslearner is a project which observes a game of chess by reading in a text file and 
 generates a list of how the pieces move. 
 
-This program includes the Sunfish chess engine, which will be modified to read in pieces.
+This program includes the Sunfish chess engine, which will be modified to read in pieces. 
+Sunfish was originally developed by Thomas Hale, and it can be 
+found [here](https://github.com/thomasahle/sunfish)
 
 Feel free to play around with the code.
 
 Modifications to Sunfish
 ============
 
-Sunfish is modified to  write the state of the game to a text file.
+Sunfish is modified to write the state of the game to a text file.
 
 Sunfish can be run as 'python sunfish.py mode <output file>'
 
