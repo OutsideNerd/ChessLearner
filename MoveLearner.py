@@ -99,20 +99,24 @@ def main():
             
             
             
-            # Check to see if a piece was captured
+            # Check to see if a piece was captured. 1 indicates ccaptured, 2 indicates
+            # not captured
             if(((player == 1) and boardStates[index - 1][end].islower()) or 
                ((player == 2) and boardStates[index - 1][end].isupper())):
-                status = 1
+                captured = 1
+            else:
+                captured = 2
             
-            # Check to see if piece is in starting position
-            elif(boardStates[index - 1][begin] == init_state[begin]):
-                status = 2
+            # Check to see if piece is in starting position. 1 indicates starting pos,
+            # 2 indicates not starting poos
+            if(boardStates[index - 1][begin] == init_state[begin]):
+                initMove = 1
                 
             else:
-                status = 0
+                initMove = 2
             
-            # Store as a tuple (x-distpance, y_distance, length)
-            move = (a / move_len, b / move_len, move_len, status)
+            # Store as a tuple (x-distpance, y_distance, length, piece captured?, initial move)
+            move = (a / move_len, b / move_len, move_len, captured, initMove)
             
             piece = boardStates[index][end].capitalize()
             
@@ -120,8 +124,20 @@ def main():
             if(moves.has_key(piece)):
                addToMoveList(moves[piece], move)  
             else:
-                moves[piece] = [move]         
-    
+                moves[piece] = [move]    
+                     
+    # TODO: Go through the move list and simplify hypotheses    
+    #for piece in moves:
+        #moves[piece] = consolidateRules(moves[piece])
+        
+    # Write the moves learned to a text file
+    outputFile = file(sys.argv[2],'w')
+    for piece in moves:
+        outputFile.write(piece + "\n")
+        for piece_move in moves[piece]:
+            outputFile.write(str(piece_move)+"\n")
+        outputFile.write("\n")
+        
     print("Number of games read in: " + str(numGamesPlayed))
     print(moves)
 
@@ -160,7 +176,8 @@ def main():
     print(winnerCount)
     print(loserCount)
 
-# This  is a function that adds a move in the format (x-pos, y-pos, max # spaces , condition)
+# This  is a function that adds a move in the format 
+# (x-pos, y-pos, max # spaces , capture condition, initial move condition)
 # to the list of moves for each piece. It does this by takiing the move and evaluating it against
 # existing hypothesis on how pieces move.
 # Parameters:
@@ -169,7 +186,7 @@ def main():
 #          
 def addToMoveList(move_list, move):
      
-     for known_move in move_list:
+     for idx, known_move in enumerate(move_list):
          
          # for each move that we know, check to see if the move we are examining
          # causes us to have to revise an earlier rule that we have stored
@@ -179,12 +196,13 @@ def addToMoveList(move_list, move):
         if(known_move[0] == move[0] and known_move[1] == move[1]):
                 
             # Exit if move already exists
-            if(known_move[2] >= move[2] and known_move[3] == move[3]):    
+            if(known_move[2] >= move[2] and ((known_move[3] == move[3] and known_move[4] == move[4]) 
+                or known_move[3] == 0 or known_move[4] == 0)):    
                 return
-                
+            
             # Update the known move if for the same status, the piece moves farther
-            if(known_move[2] < move[2] and known_move[3] == move[3]):
-                known_move = (known_move[0], known_move[1], known_move[2], move[3])
+            if(known_move[2] < move[2] and known_move[3] == move[3] and known_move[4] == move[4]):
+                move_list[idx] = (known_move[0], known_move[1], move[2], known_move[3], known_move[4])
                 return
              
             # If a previously known move was just for one of the following scenarios:
@@ -192,14 +210,30 @@ def addToMoveList(move_list, move):
             #     -piece has not moves form original position
             # and that is contradicted by moving to an empty square or from a non-starting
             # position, update the known move's condition
-            elif(known_move[2] >= move[2] and (known_move[3] != 0 and move[3] == 0)):
-                known_move = (known_move[0], known_move[1], known_move[2], 0)
+            elif(known_move[2] == move[2]):
+                 
+                elimCapture = (known_move[3] == 1 and move[3] == 2) or (known_move[3] == 2 and move[3] == 1)
+                elimFirstMove = (known_move[4] == 1 and move[4] == 2) or (known_move[4] == 2 and move[4] == 1)
+                 
+                if(elimCapture and elimFirstMove):
+                    move_list[idx] = (known_move[0], known_move[1], known_move[2], 0, 0)
+                elif(elimCapture):
+                    move_list[idx] = (known_move[0], known_move[1], known_move[2], 0, known_move[4])
+                elif(elimFirstMove):
+                    move_list[idx] = (known_move[0], known_move[1], known_move[2], known_move[3], 0)
+                
                 return
     
      # If the move was not found, add it to the end of the list
      move_list.append(move)       
-        
-        
+
+# TODO: This function takes a list of rules for the pieces, and tries to
+# consolidate the rule list for duplicate conditions
+#
+# 
+def consolidateRules(move_list):        
+    return move_list
+
 if __name__ == '__main__':
     if(len(sys.argv) > 1):
         main()
