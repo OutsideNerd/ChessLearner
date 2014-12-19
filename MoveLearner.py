@@ -13,6 +13,9 @@ BOARD_HEIGHT = 8
 
 def main():
      
+     
+    f = open(sys.argv[1], 'r')
+    inputfiles = f.readlines()
     # Create an empty dictionary to store the moves
     # The dictionary has a key that corresponds to each piece, and has a list
     # of possible moves for that piece. Each possible move is represented as a
@@ -27,7 +30,7 @@ def main():
     moves = {}
        
     #  Analyze each text file that was imported as a command-line argument
-    for filename in sys.argv[1:]:
+    for filename in inputfiles:
         
         # Read in the information from the file
         f = open(filename, 'r')
